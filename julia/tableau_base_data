@@ -1,0 +1,44 @@
+WITH products AS (
+
+SELECT final.*
+       , farns_prod.category
+FROM mrd20211120delivery.data_ops_final_report_product final
+LEFT JOIN mrd20211120delivery.farnsworth_products farns_prod
+ON final.product_id = farns_prod.id
+WHERE change_type LIKE '%anomalous%'
+                  )
+
+     , vendors AS (
+
+SELECT vendor_id
+       , COUNT(DISTINCT product_id) AS vendor_count_products
+       , SUM(previous_total_install_count) AS vendor_previous_total_install_count
+       , SUM(current_total_install_count) AS vendor_current_total_install_count
+       , SUM(net_install_count) AS vendor_net_install_count
+FROM mrd20211120delivery.data_ops_final_report_product
+WHERE change_type LIKE '%anomalous%'
+GROUP BY vendor_id
+ORDER BY vendor_count_products DESC
+                  )
+
+     , categories AS (
+
+SELECT farns_prod.category
+       , COUNT(DISTINCT final.product_id) AS category_count_products
+       , SUM(previous_total_install_count) AS category_previous_total_install_count
+       , SUM(current_total_install_count) AS category_current_total_install_count
+       , SUM(net_install_count) AS category_net_install_count
+FROM mrd20211120delivery.data_ops_final_report_product final
+LEFT JOIN mrd20211120delivery.farnsworth_products farns_prod
+ON final.product_id = farns_prod.id
+WHERE change_type LIKE '%anomalous%'
+GROUP BY farns_prod.category
+ORDER BY category_count_products DESC
+                  )
+
+SELECT products.*
+       , vendors.*
+       , categories.*
+FROM products
+LEFT JOIN vendors ON products.vendor_id = vendors.vendor_id
+LEFT JOIN categories ON products.category = categories.category
